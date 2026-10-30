@@ -7,7 +7,13 @@ class ServicioTanda {
   final Tanda tanda;
 
   ServicioTanda(this.tanda);
+
+  // Registrar una aportación.
   ResultadoAportacion registrarAportacion(String idParticipante) {
+    if (haTerminado()) {
+      return ResultadoAportacion.tandaTerminada;
+    }
+
     final esParticipante = tanda.participantes.any(
       (p) => p.id == idParticipante,
     );
@@ -16,7 +22,9 @@ class ServicioTanda {
       return ResultadoAportacion.participanteInvalido;
     }
 
-    if (tanda.aportacionesRondaActual.contains(idParticipante)) {
+    final yaAporto = tanda.aportacionesRondaActual.contains(idParticipante);
+
+    if (yaAporto) {
       return ResultadoAportacion.yaAporto;
     }
 
@@ -25,13 +33,20 @@ class ServicioTanda {
     return ResultadoAportacion.registrada;
   }
 
+  // Comprobar que todos aportaron.
   bool puedeCerrarRonda() {
     return tanda.participantes.every(
       (p) => tanda.aportacionesRondaActual.contains(p.id),
     );
   }
 
+  // Cerrar la ronda y entregar el turno.
   CierreRonda cerrarRondaYAvanzar() {
+    // Protección adicional contra un cierre después del final.
+    if (haTerminado()) {
+      return CierreRonda(ResultadoCierre.tandaYaTermino, null);
+    }
+
     if (!puedeCerrarRonda()) {
       return CierreRonda(ResultadoCierre.faltanAportaciones, null);
     }
@@ -49,5 +64,10 @@ class ServicioTanda {
     tanda.turnoActual++;
 
     return CierreRonda(ResultadoCierre.rondaCerrada, beneficiario);
+  }
+
+  // Comprobar si finalizaron todos los turnos.
+  bool haTerminado() {
+    return tanda.turnoActual >= tanda.ordenTurnos.length;
   }
 }
